@@ -8,8 +8,8 @@ from typing import Tuple
 import yaml
 
 from clearml import Task
-from clearml.automation.auto_scaler import AutoScaler, ScalerConfig
-from clearml.automation.aws_driver import AWSDriver
+from ....clearml.automation.auto_scaler import AutoScaler, ScalerConfig
+from ....clearml.automation.aws_driver import AWSDriver
 from clearml.config import running_remotely
 from clearml.utilities.wizard.user_input import (
     get_input, input_bool, input_int, input_list, multiline_input
