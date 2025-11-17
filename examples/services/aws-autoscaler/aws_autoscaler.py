@@ -1,3 +1,7 @@
+import sys
+import os
+from pathlib import Path
+
 import json
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -8,12 +12,28 @@ from typing import Tuple
 import yaml
 
 from clearml import Task
-from ....clearml.automation.auto_scaler import AutoScaler, ScalerConfig
-from ....clearml.automation.aws_driver import AWSDriver
+from clearml.automation.auto_scaler import AutoScaler, ScalerConfig
+from clearml.automation.aws_driver import AWSDriver
 from clearml.config import running_remotely
 from clearml.utilities.wizard.user_input import (
     get_input, input_bool, input_int, input_list, multiline_input
 )
+
+
+# ==============================================================================
+#  FORCE LOCAL REPO USAGE
+# ==============================================================================
+# This calculates the path to the root of your repository
+# It goes up 3 levels: aws-autoscaler -> services -> examples -> repo_root
+current_path = Path(__file__).resolve()
+repo_root = current_path.parents[3]
+
+# We insert the repo root at the VERY BEGINNING of sys.path
+# This forces Python to load 'clearml' from your cloned files, not site-packages.
+if str(repo_root) not in sys.path:
+    print(f"Dev Mode: Injecting local repository into sys.path: {repo_root}")
+    sys.path.insert(0, str(repo_root))
+
 
 DEFAULT_DOCKER_IMAGE = "nvidia/cuda:10.1-runtime-ubuntu18.04"
 
