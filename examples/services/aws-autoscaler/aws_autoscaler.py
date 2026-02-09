@@ -1,7 +1,3 @@
-import sys
-import os
-from pathlib import Path
-
 import json
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -18,21 +14,6 @@ from clearml.config import running_remotely
 from clearml.utilities.wizard.user_input import (
     get_input, input_bool, input_int, input_list, multiline_input
 )
-
-
-# ==============================================================================
-#  FORCE LOCAL REPO USAGE
-# ==============================================================================
-# This calculates the path to the root of your repository
-# It goes up 3 levels: aws-autoscaler -> services -> examples -> repo_root
-current_path = Path(__file__).resolve()
-repo_root = current_path.parents[3]
-
-# We insert the repo root at the VERY BEGINNING of sys.path
-# This forces Python to load 'clearml' from your cloned files, not site-packages.
-if str(repo_root) not in sys.path:
-    print(f"Dev Mode: Injecting local repository into sys.path: {repo_root}")
-    sys.path.insert(0, str(repo_root))
 
 
 DEFAULT_DOCKER_IMAGE = "nvidia/cuda:10.1-runtime-ubuntu18.04"
@@ -87,16 +68,7 @@ def main():
     if running_remotely():
         conf = default_config
     else:
-        print("AWS Autoscaler setup wizard\n"
-              "---------------------------\n"
-              "Follow the wizard to configure your AWS auto-scaler service.\n"
-              "Once completed, you will be able to view and change the configuration in the clearml-server web UI.\n"
-              "It means there is no need to worry about typos or mistakes :)\n")
-
-        if args.config_file.exists() and input_bool(
-            "Load configurations from config file '{}' [Y/n]? ".format(args.config_file),
-            default=True,
-        ):
+        if args.config_file.exists():
             with args.config_file.open("r") as f:
                 conf = yaml.load(f, Loader=yaml.SafeLoader)
         else:

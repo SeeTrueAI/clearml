@@ -27,7 +27,7 @@ python3 -m pip install -U pip
 python3 -m pip install virtualenv
 python3 -m virtualenv clearml_agent_venv
 source clearml_agent_venv/bin/activate
-python -m pip install clearml-agent
+python -m pip install "setuptools<80" clearml-agent
 cat << EOF >> ~/clearml.conf
 {clearml_conf}
 EOF
