@@ -46,7 +46,7 @@ set +x
 curl -H "Authorization: token {github_token}" \
   -H "Accept: application/vnd.github.v3.raw" \
   -o /usr/local/bin/task_monitor.py \
-  "https://api.github.com/repos/SeeTrueAI/devops-tools/contents/tools/cleaml/monitor/task_monitor.py?ref=clearml-monitor"
+  "https://api.github.com/repos/SeeTrueAI/devops-tools/contents/tools/cleaml/monitor/task_monitor.py?ref=master"
 set -x
 systemctl restart clearml-monitor
 
