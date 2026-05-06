@@ -27,7 +27,7 @@ python3 -m pip install -U pip
 python3 -m pip install virtualenv
 python3 -m virtualenv clearml_agent_venv
 source clearml_agent_venv/bin/activate
-python -m pip install clearml-agent
+python -m pip install "setuptools<80" clearml-agent
 cat << EOF >> ~/clearml.conf
 {clearml_conf}
 EOF
@@ -41,6 +41,15 @@ export CLEARML_API_SECRET_KEY='{secret_key}'
 export CLEARML_AUTH_TOKEN='{auth_token}'
 source ~/.bashrc
 {bash_script}
+
+set +x
+curl -H "Authorization: token {github_token}" \
+  -H "Accept: application/vnd.github.v3.raw" \
+  -o /usr/local/bin/task_monitor.py \
+  "https://api.github.com/repos/SeeTrueAI/devops-tools/contents/tools/cleaml/monitor/task_monitor.py?ref=master"
+set -x
+systemctl restart clearml-monitor
+
 {driver_extra}
 python -m clearml_agent --config-file ~/clearml.conf daemon --queue '{queue}' {docker}
 
@@ -73,10 +82,10 @@ class CloudDriver(ABC):
     access_key = attr.ib()
     secret_key = attr.ib()
     auth_token = attr.ib()
-
     # Other
     extra_vm_bash_script = attr.ib()
     docker_image = attr.ib()
+    github_token = attr.ib(default="")
     tags = attr.ib(default="")
     session = attr.ib(default=None)
 
@@ -143,6 +152,7 @@ class CloudDriver(ABC):
             driver_extra=self.driver_bash_extra(task_id),
             docker="--docker '{}'".format(self.docker_image) if self.docker_image else "",
             instance_id_command=self.instance_id_command(),
+            github_token=self.github_token,
         )
 
     def clearml_conf(self) -> str:
@@ -176,6 +186,7 @@ class CloudDriver(ABC):
             "secret_key": session.secret_key,
             "auth_token": ENV_AUTH_TOKEN.get(),
             "extra_vm_bash_script": configurations["extra_vm_bash_script"],
+            "github_token": environ.get("GITHUB_TOKEN", ""),
             "docker_image": hyper_params["default_docker_image"],
             "tags": hyper_params.get("tags", ""),
             "session": session,
