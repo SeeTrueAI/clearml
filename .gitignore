@@ -23,3 +23,5 @@ examples/frameworks/data
 # vscode
 .workspace/
 .vscode/
+examples/services/aws-autoscaler/aws_autoscaler.yaml
+examples/services/aws-autoscaler/aws_autoscaler.yaml.bkp
