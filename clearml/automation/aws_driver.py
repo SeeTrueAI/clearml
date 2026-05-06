@@ -21,6 +21,10 @@ except ImportError as err:
     ) from err
 
 
+class InsufficientCapacityError(Exception):
+    pass
+
+
 @attr.s
 class AWSDriver(CloudDriver):
     """AWS Driver"""
@@ -114,9 +118,15 @@ class AWSDriver(CloudDriver):
             encoded_user_data = base64.b64encode(user_data.encode("ascii")).decode("ascii")
             launch_specification["UserData"] = encoded_user_data
             ConfigTree.merge_configs(launch_specification, resource_conf.get("extra_configurations", {}))
-
-            instances = ec2.request_spot_instances(LaunchSpecification=launch_specification)
-
+            try:
+                instances = ec2.request_spot_instances(LaunchSpecification=launch_specification)
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'InsufficientInstanceCapacity':
+                    raise InsufficientCapacityError(
+                        f"Not enough On-Demand capacity for {resource_conf.get('instance_type')} "
+                        f"in subnet {resource_conf.get('subnet_id')}"
+                    ) from e
+                raise           
             # Wait until spot request is fulfilled
             request_id = instances["SpotInstanceRequests"][0]["SpotInstanceRequestId"]
             waiter = ec2.get_waiter("spot_instance_request_fulfilled")
@@ -134,9 +144,15 @@ class AWSDriver(CloudDriver):
                 InstanceInitiatedShutdownBehavior="terminate",
             )
             ConfigTree.merge_configs(launch_specification, resource_conf.get("extra_configurations", {}))
-
-            instances = ec2.run_instances(**launch_specification)
-
+            try: 
+                instances = ec2.run_instances(**launch_specification)
+            except ClientError as e:
+                if e.response['Error']['Code'] == 'InsufficientInstanceCapacity':
+                    raise InsufficientCapacityError(
+                        f"Not enough On-Demand capacity for {resource_conf.get('instance_type')} "
+                        f"in subnet {resource_conf.get('subnet_id')}"
+                    ) from e
+                raise
             # Get the instance object for later use
             instance_id = instances["Instances"][0]["InstanceId"]
 
@@ -170,7 +186,13 @@ class AWSDriver(CloudDriver):
         return creds
 
     def instance_id_command(self) -> str:
-        return "curl http://169.254.169.254/latest/meta-data/instance-id"
+            # Use IMDSv2 (Token-based) which is required for Ubuntu 24.04+
+            return (
+                "TOKEN=`curl -X PUT 'http://169.254.169.254/latest/api/token' "
+                "-H 'X-aws-ec2-metadata-token-ttl-seconds: 21600'` && "
+                "curl -H \"X-aws-ec2-metadata-token: $TOKEN\" "
+                "http://169.254.169.254/latest/meta-data/instance-id"
+            )
 
     def instance_type_key(self) -> str:
         return "instance_type"
